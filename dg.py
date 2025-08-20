@@ -49,8 +49,7 @@ def analyze(path):
             case Delimit():
                 state = delimit(state)
             case Tokenize():
-                print(state.data)
-                state = Parse(0)
+                state = tokenize(state)
             case Parse():
                 state = Finish('Finished successful')
             case _:
@@ -64,7 +63,7 @@ def initialize(state):
         return Delimit(file, '', 0, [])
 
     message = ("Finishied unsuccessful, " 
-                   "file couldn\'t open")
+               "file couldn\'t open")
     return Finish(message)
 
 
@@ -92,6 +91,10 @@ def delimit(st):
 
     return st
 
+
+def tokenize(st):
+    print(st.data)
+    return Parse([])
 
 analyze("res.phyobj")
 analyze("res1.phyobj")
