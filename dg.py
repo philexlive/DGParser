@@ -29,6 +29,11 @@ class Finish(State):
         self.msg = msg
 
 
+class Wrapper:
+    def __init__(self, state):
+        self.state = state
+
+
 class Tk(Enum):
     OPEN_PAREN=0
     CLOSE_PAREN=1
@@ -39,62 +44,67 @@ class Tk(Enum):
     FINISH={'message': ''}
 
 
+
 def analyze(path):
-    state = Init(path)
+    wr = Wrapper(Init(path))
 
     while True:
-        match state:
+        match wr.state:
             case Init():
-                state = initialize(state)
+                initialize(wr)
             case Delimit():
-                state = delimit(state)
+                delimit(wr)
             case Tokenize():
-                state = tokenize(state)
+                tokenize(wr)
             case Parse():
-                state = Finish('Finished successful')
+                wr.state = Finish('Finished successful')
             case _:
                 break
 
 
-def initialize(state):
-    file = open(state.path, encoding="utf-8")
+def initialize(wr):
+    file = open(wr.state.path, encoding="utf-8")
 
     if file:
-        return Delimit(file, '', 0, [])
+        wr.state = Delimit(file, '', 0, [])
+        return
 
     message = ("Finishied unsuccessful, " 
                "file couldn\'t open")
-    return Finish(message)
+    wr.state = Finish(message)
 
 
 def is_separator(s):
     return s in [' ', '\n', '\t']
 
 
-def delimit(st):
-    c = st.file.read(1)
-    cursor = st.file.tell()
+def delimit(wr):
+    st = wr.state
 
-    if not is_separator(c):
-        st.substr += c
+    while True:
+        c = st.file.read(1)
+        cursor = st.file.tell()
 
-    if is_separator(c) and st.pointer == cursor-1:
-        st.pointer = cursor
-    elif is_separator(c) and st.pointer != cursor-1:
-        st.tokens.append(st.substr)
-        st.pointer = cursor
-        st.substr = ''
+        if not is_separator(c):
+            wr.state.substr += c
 
-    if c == '':
-        st.file.close()
-        return Tokenize(st.tokens) 
+        if is_separator(c) and st.pointer == cursor-1:
+            wr.state.pointer = cursor
+        elif is_separator(c) and st.pointer != cursor-1:
+            wr.state.tokens.append(st.substr)
+            wr.state.pointer = cursor
+            wr.state.substr = ''
 
-    return st
+        if c == '':
+            wr.state.file.close()
+            wr.state = Tokenize(st.tokens) 
+            break
 
 
-def tokenize(st):
-    print(st.data)
-    return Parse([])
+
+def tokenize(wr):
+    print(wr.state.data)
+    wr.state = Parse([])
 
 analyze("res.phyobj")
 analyze("res1.phyobj")
