@@ -18,15 +18,16 @@ class Delimit(State):
         self.tokens = tokens
 
 class Tokenize(State):
-    def __init(self, data):
-        self.data
+    def __init__(self, data):
+        self.data = data
 
 class Parse(State):
-    def __init(self, data):
-        self.data
+    def __init__(self, data):
+        self.data = data
 
 class Finish(State):
-    pass
+    def __init__(self, msg):
+        self.msg = msg
 
 class Tk(Enum):
     OPEN_PAREN=0
@@ -35,11 +36,6 @@ class Tk(Enum):
     LITERAL=3
     OPERATOR=4
 
-class St(Enum):
-    INIT={'path': ''}
-    DELIMIT={'file':None, 'substr':'', 'left':0, 'right':0, 'tokens':[]}
-    TOKENIZE={'result': []}
-    PARSE={'data': []}
     FINISH={'message': ''}
 
 
@@ -47,63 +43,57 @@ def is_separator(s):
     return s in [' ', '\n', '\t']
 
 def analyze(path):
-    state = St.INIT
-    state.value['path'] = path
+    state = Init(path)
 
     while True:
         match state:
-            case St.INIT:
+            case Init():
+                print(state)
                 state = initialize(state)
-            case St.DELIMIT:
+                print(state)
+            case Delimit():
                 state = delimit(state)
-                state = St.TOKENIZE
-            case St.TOKENIZE:
-                state = St.PARSE
-            case St.PARSE:
-                state = St.FINISH
+            case Tokenize():
+                print(state)
+                state = Parse(0)
+            case Parse():
+                print(state)
+                state = Finish('Finished successful')
             case _:
                 print(state)
                 break
 
 def initialize(state):
-    file = open(state.value['path'], encoding="utf-8")
-
-    state = St.FINISH
+    file = open(state.path, encoding="utf-8")
 
     if file:
-        state = St.DELIMIT
-        state.value['file'] = file
-        return state
+        return Delimit(file, '', 0, 0, [])
 
     message = ("Finishied unsuccessful, " 
                    "file couldn\'t open")
-    state.value['message'] = message 
-    return state
+    return Finish(message)
 
 
-def delimit(state):
-    st = state.value
-    file = st['file']
-    c = file.read(1)
+def delimit(st):
+    c = st.file.read(1)
+
     if not is_separator(c):
-        st['substr'] += c
-        st['right'] = file.tell()
+        st.substr += c
+        st.right = st.file.tell()
 
-    if is_separator(c) and st['left'] == st['right']:
-        st['right'] = file.tell()
-        st['left'] = st['right']
-    elif is_separator(c) and st['left'] != st['right']:
-        st['tokens'].append(st['substr'])
-        st['left'] = st['right']
-        st['substr'] = ''
+    if is_separator(c) and st.left == st.right:
+        st.right = st.file.tell()
+        st.left = st.right
+    elif is_separator(c) and st.left != st.right:
+        st.tokens.append(st.substr)
+        st.left = st.right
+        st.substr = ''
 
     if c == '':
-        file.close()
-        new_state = St.TOKENIZE
-        new_state.value['result'] = st['tokens']
-        return new_state
+        st.file.close()
+        return Tokenize(st.tokens) 
 
-    return St.DELIMIT
+    return st
 
 
 analyze("res.phyobj")
