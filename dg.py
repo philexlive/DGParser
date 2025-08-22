@@ -1,5 +1,6 @@
 from enum import Enum
-from abc import ABC
+import re
+import sys
 
 
 class Tk(Enum):
@@ -12,41 +13,7 @@ class Tk(Enum):
     LITERAL=6
 
 
-def analyze(path):
-    lexemes = []
-    with open(path, encoding="utf-8") as file:
-        delimit(lexemes, file)
-
-    print(lexemes)
-
-
-def delimit(lexemes, file):
-    def is_separator(s):
-        return s in [' ', '\n', '\t']
-
-    pointer, cursor = 0, 0
-    buffer = ''
-    while True:
-        c = file.read(1)
-        cursor = file.tell()
-
-        if not is_separator(c):
-            buffer += c
-
-        if is_separator(c) and pointer == (cursor - 1):
-            pointer = cursor
-        elif is_separator(c) and pointer != (cursor - 1):
-            lexemes.append(buffer)
-            pointer = cursor
-            buffer = ''
-
-        if c == '':
-            break
-
-
-import re
-
-class Tokenizer:
+class LexicalAnalyzer:
     
     _is_delimiter = lambda self, s: s in [' ', '\n', '\t']
     _is_at_operator = lambda self, s: s == '@'
@@ -100,6 +67,10 @@ class Tokenizer:
                         append_tk((Tk.CLOSE_PARAMS,))
                     elif self._is_at_operator(c):
                         state = St.GROUP_NAME
+                    elif self._is_assign_operator(c) and prev_st != St.ASSIGN_OPERATOR:
+                        append_tk((Tk.ASSIGN_OP,), 
+                                  p_st=St.ASSIGN_OPERATOR)
+                        state = St.ASSIGN_OPERATOR
                     elif self._is_letter(c) and prev_st == St.ASSIGN_OPERATOR:
                         state = St.LITERAL
                     elif self._is_digit(c) and prev_st == St.ASSIGN_OPERATOR:
@@ -110,9 +81,6 @@ class Tokenizer:
                     elif self._is_letter(c):
                         buffer = c
                         state = St.IDENTIFIER
-                    elif self._is_assign_operator(c):
-                        tokens.append((Tk.ASSIGN_OP,))
-                        state = St.ASSIGN_OPERATOR
                 
                 case St.OPEN_ARROW:
                     if self._is_digit(c):
@@ -184,24 +152,12 @@ class Tokenizer:
                 break
 
 
-def parse(tokens):
-    pass
+import pathlib
+path = pathlib.Path(sys.argv[1])
 
-
-analyze("res.phyobj")
-analyze("res1.phyobj")
-print()
-tkz = Tokenizer()
-tokens = []
-with open('res.phyobj', encoding="utf-8") as f:
-    tkz.tokenize(tokens, f)
-    for tk in tokens:
-        print(tk)
-
-print()
-
-tokens = []
-with open('res1.phyobj', encoding="utf-8") as f:
-    tkz.tokenize(tokens, f)
-    for tk in tokens:
-        print(tk)
+if path.is_file():
+    with open(path, encoding="utf-8") as f:
+        tokens = []
+        LexicalAnalyzer().tokenize(tokens, f)
+        for tk in tokens:
+            print(tk)
