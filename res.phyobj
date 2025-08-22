@@ -1,22 +1,20 @@
 <phyobj@self
     name=PhyObj
 
-    @pos x=0 y=0 
-phyobj>
+    @pos x=0 y=0 >
     
     <phyobj@self
         name=RightHand
-    phyobji>
+    />
 
     <phyobj@self
        name=LeftHand
-       pos="res/lefthand.position"
-    phyobj>
+       pos="res/lefthand.position" >
     
         <phyobj@self
             name=PlasmaDrill
             
             @velocity x=1 y=2
-        phyobj>
+        />
     </>
 </>
