@@ -47,14 +47,10 @@ class LexicalAnalyzer:
             return s == '"'
 
         def is_operator(s):
-            if re.fullmatch(r"^[<>@=/]$", s):
-                return True
-            return False
+            s in ['<','>','@','=','/']
 
         def is_delimiter(s):
-            if re.fullmatch(r"^[\s\n\t<>@=/]$", s):
-                return True
-            return False
+            return s in [' ', '\n', '\t', '<', '>', '@', '=', '/', '']
 
 
         def check_operator(s):
@@ -98,8 +94,6 @@ class LexicalAnalyzer:
                         state = St.READING_NUMBER
                     elif is_quote(c):
                         state = St.READING_STRING
-                    elif c == '':
-                        state = St.FINISH
 
                 case St.READING_ID_OR_KEY:
                     if is_delimiter(c):
@@ -134,7 +128,8 @@ class LexicalAnalyzer:
                         state = St.INITIAL
                     else:
                         buffer += c
-
+            if c == '':
+                state = St.FINISH
 
 
 args = sys.argv
