@@ -47,7 +47,7 @@ class LexicalAnalyzer:
             return s == '"'
 
         def is_operator(s):
-            s in ['<','>','@','=','/']
+            return s in ['<','>','@','=','/']
 
         def is_delimiter(s):
             return s in [' ', '\n', '\t', '<', '>', '@', '=', '/', '']
