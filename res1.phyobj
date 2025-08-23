@@ -5,18 +5,18 @@
     @pos
     x=0
     y=0 
-phyobj>
+>
     
     <phyobj
         @self
         name=RightHand
-    /phyobji>
+    />
 
     <phyobj
        @self
        name=LeftHand
        pos="res/lefthand.position"
-    phyobj>
+    >
     
         <phyobj
             @self
@@ -25,7 +25,6 @@ phyobj>
             @velocity
             x=1
             y=2
-        /phyobj>
-    </>
+        />
 </>
-
+</>

@@ -15,67 +15,34 @@ class Tk(Enum):
     BOOL_LITERAL=7
     STRING_LITERAL=8
     IDENTIFIER=9
+    
 
+class Tokenizer:
 
-class LexicalAnalyzer:
-
-    class TokenizerState(Enum):
+    class St(Enum):
         INITIAL=0
         FINISH=1
         READING_ID_OR_KEY=2
         READING_NUMBER=3
         READING_STRING=4
 
-        
 
     def tokenize(self, tokens, file):
+        St = self.St
         
-        def is_letter(s):
-            if re.fullmatch(r"^[a-zA-Z]", s):
-                return True
-            return False
 
-        def is_digit(s): 
-            if re.fullmatch(r"^\d$", s):
-                return True
-            return False
+        is_delimiter = self.is_delimiter
+        is_operator = self.is_operator
+        is_letter = self.is_letter
+        is_digit = self.is_digit
+        is_quote = self.is_quote
+        is_dot = self.is_dot
 
-        def is_dot(s):
-            return s == '.'
-
-        def is_quote(s):
-            return s == '"'
-
-        def is_operator(s):
-            return s in ['<','>','@','=','/']
-
-        def is_delimiter(s):
-            return s in [' ', '\n', '\t', '<', '>', '@', '=', '/', '']
-
-
-        def check_operator(s):
-            return {'<': Tk.OPEN_ARROW,
-                    '>': Tk.CLOSE_ARROW,
-                    '@': Tk.AT_OPERATOR,
-                    '=': Tk.ASSIGN_OPERATOR,
-                    '/': Tk.SLASH_OPERATOR }[s]
-
-        def check_number(s):
-            if re.fullmatch(r"^[-+]?\d+$", s):
-                return Tk.INTEGER_LITERAL
-            elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
-                return Tk.FLOAT_LITERAL
-            
-            raise SyntaxError(f"Unexpected literal {s}.")
-
-        def check_id_or_key(s):
-            pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
-            if pattern.fullmatch(s):
-                return Tk.BOOL_LITERAL
-            return Tk.IDENTIFIER
-
-        St = self.TokenizerState
-
+        check_operator = self.check_operator
+        check_number = self.check_number
+        check_id_or_key = self.check_id_or_key
+        
+        
         state = St.INITIAL
         buffer = ''
         while state != St.FINISH:
@@ -132,6 +99,137 @@ class LexicalAnalyzer:
                 state = St.FINISH
 
 
+    def is_letter(self, s):
+        if re.fullmatch(r"^[a-zA-Z]", s):
+            return True
+        return False
+
+    def is_digit(self, s): 
+        if re.fullmatch(r"^\d$", s):
+            return True
+        return False
+
+    def is_dot(self, s):
+        return s == '.'
+
+    def is_quote(self, s):
+        return s == '"'
+
+    def is_operator(self, s):
+        return s in ['<','>','@','=','/']
+
+    def is_delimiter(self, s):
+        return s in [' ', '\n', '\t', '<', '>', '@', '=', '/', '']
+
+
+    def check_operator(self, s):
+        return {'<': Tk.OPEN_ARROW,
+                '>': Tk.CLOSE_ARROW,
+                '@': Tk.AT_OPERATOR,
+                '=': Tk.ASSIGN_OPERATOR,
+                '/': Tk.SLASH_OPERATOR }[s]
+
+    def check_number(self, s):
+        if re.fullmatch(r"^[-+]?\d+$", s):
+            return Tk.INTEGER_LITERAL
+        elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
+            return Tk.FLOAT_LITERAL
+            
+        raise SyntaxError(f"Unexpected literal {s}.")
+
+    def check_id_or_key(self, s):
+        pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
+        if pattern.fullmatch(s):
+            return Tk.BOOL_LITERAL
+        return Tk.IDENTIFIER
+
+
+class Parser:
+    class St:
+        INITIAL=0
+        EXPECT_ATTR_OPENING=1
+        EXPECT_ATTR_CLOSING=2
+        EXPECT_BODY_CLOSING=3
+        FINISH=12
+        
+    
+    def parse(self, tokens, tree):
+        St = self.St
+        
+        cursor = 0
+        state = St.INITIAL
+        opened_bodies=0
+
+        buffer = '' # Just visualization purpose
+        
+        while state != St.FINISH:
+            if cursor >= len(tokens):
+                state = St.FINISH
+
+            match state:
+                case St.INITIAL:
+                    if tokens[cursor][0] == Tk.OPEN_ARROW:
+                        state = St.EXPECT_ATTR_OPENING
+
+                        # Just visualization purpose
+                        buffer += '\t'*opened_bodies
+                        buffer += tokens[cursor][1]
+
+                case St.EXPECT_ATTR_OPENING:
+                    if tokens[cursor][0] == Tk.IDENTIFIER:
+                        state = St.EXPECT_ATTR_CLOSING
+                        opened_bodies += 1
+
+                        # Just visualization purpose
+                        buffer += tokens[cursor][1]
+                        print(buffer, end=' ')
+                        buffer = ''
+                    elif tokens[cursor][0] == Tk.SLASH_OPERATOR:
+                        state = St.EXPECT_BODY_CLOSING
+                        
+                        # Just visualization purpose
+                        buffer += tokens[cursor][1]
+                
+                case St.EXPECT_ATTR_CLOSING:
+                    if tokens[cursor][0] == Tk.SLASH_OPERATOR:
+                        state = St.EXPECT_BODY_CLOSING
+
+                        # Just visualization purpose
+                        buffer += tokens[cursor][1]
+                    elif tokens[cursor][0] == Tk.CLOSE_ARROW:
+                        state = St.INITIAL
+
+                        # Just visualization purpose
+                        buffer += tokens[cursor][1]
+                        print(buffer)
+                        buffer = ''
+                        print(("\t"*opened_bodies) + "This body could have children")
+                case St.EXPECT_BODY_CLOSING:
+                    if tokens[cursor][0] == Tk.CLOSE_ARROW:
+                        state = St.INITIAL
+                        opened_bodies -= 1
+
+                        # Just visualization purpose
+                        buffer += tokens[cursor][1]
+                        if buffer.strip() == '</>':
+                            print(("\t" * (opened_bodies)) + buffer.strip())
+                        else:
+                            print(buffer)
+                        buffer = '' 
+
+                    else:
+                        raise SyntaxError("> was expected")
+                        
+
+            
+            cursor += 1
+        print(opened_bodies)
+
+
+class LexicalAnalyzer:
+    tokenize = Tokenizer().tokenize
+    parse = Parser().parse
+
 args = sys.argv
 if len(args) > 1:
     path = pathlib.Path(sys.argv[1])
@@ -140,5 +238,8 @@ if len(args) > 1:
         with open(path, encoding="utf-8") as f:
             tokens = []
             LexicalAnalyzer().tokenize(tokens, f)
-            for tk in tokens:
-                print(tk)
+            #for tk in tokens:
+            #    print(tk)
+            tree = {}
+            LexicalAnalyzer().parse(tokens, tree)
+            print(tree)
