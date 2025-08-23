@@ -1,17 +1,18 @@
 <phyobj@self
     name="PhyObj"
 
-    @pos x=0 y=0 >
+    @pos
+    x=0
+    y=0 >
     
-    <phyobj@self
-        name="RightHand"
-    />
+    <phyobj@self name="RightHand"/>
 
-    <phyobj@self
-        name="LeftHand"
+    <phyobj
+	@self name="LeftHand"
 	inherit=false
+        pos="res/lefthand.position"
 
-        pos="res/lefthand.position" >
+>
     
         <phyobj@self
             name="PlasmaDrill"

@@ -1,163 +1,149 @@
 from enum import Enum
 import re
 import sys
-
+import pathlib
+import unittest
 
 class Tk(Enum):
-    OPEN_PARAMS=0
-    CLOSE_PARAMS=1
-    CLOSE_BODY=2
-    GROUP_NAME=3
-    IDENTIFIER=4
-    ASSIGN_OP=5
-    LITERAL=6
+    OPEN_ARROW=0
+    CLOSE_ARROW=1
+    AT_OPERATOR=2
+    ASSIGN_OPERATOR=3
+    SLASH_OPERATOR=4
+    INTEGER_LITERAL=5
+    FLOAT_LITERAL=6
+    BOOL_LITERAL=7
+    STRING_LITERAL=8
+    IDENTIFIER=9
 
 
 class LexicalAnalyzer:
-    
-    _is_delimiter = lambda self, s: s in [' ', '\n', '\t']
-    _is_at_operator = lambda self, s: s == '@'
-    _is_assign_operator = lambda self, s: s == '='
-    _is_opening = lambda self, s: s == '<'
-    _is_closing = lambda self, s: s == '>'
-    _is_slash = lambda self, s: s == '/'
-    _is_quote = lambda self, s: s == '"'
-    _is_digit = lambda self, s: re.match(r"[0-9]", s) != None 
-    _is_letter = lambda self, s: re.match(r"[a-zA-Z]", s) != None
 
-    class State(Enum):
+    class TokenizerState(Enum):
         INITIAL=0
-        OPEN_ARROW=1
-        CLOSE_ARROW=2
-        CLOSE_BODY=3
-        AT_OPERATOR=4
-        ASSIGN_OPERATOR=5
-        GROUP_NAME=6
-        IDENTIFIER=7
-        LITERAL=8
-        QUOTE=9
+        FINISH=1
+        READING_ID_OR_KEY=2
+        READING_NUMBER=3
+        READING_STRING=4
+
+        
 
     def tokenize(self, tokens, file):
         
-        St = self.State
+        def is_letter(s):
+            if re.fullmatch(r"^[a-zA-Z]", s):
+                return True
+            return False
 
-        def append_tk(tk, st=St.INITIAL, bf='', p_st=St.INITIAL):
-            nonlocal state
-            nonlocal buffer
-            nonlocal prev_st
-            tokens.append(tk)
-            state = st
-            buffer = bf
-            prev_st = p_st
+        def is_digit(s): 
+            if re.fullmatch(r"^\d$", s):
+                return True
+            return False
 
+        def is_dot(s):
+            return s == '.'
+
+        def is_quote(s):
+            return s == '"'
+
+        def is_operator(s):
+            if re.fullmatch(r"^[<>@=/]$", s):
+                return True
+            return False
+
+        def is_delimiter(s):
+            if re.fullmatch(r"^[\s\n\t<>@=/]$", s):
+                return True
+            return False
+
+
+        def check_operator(s):
+            return {'<': Tk.OPEN_ARROW,
+                    '>': Tk.CLOSE_ARROW,
+                    '@': Tk.AT_OPERATOR,
+                    '=': Tk.ASSIGN_OPERATOR,
+                    '/': Tk.SLASH_OPERATOR }[s]
+
+        def check_number(s):
+            if re.fullmatch(r"^[-+]?\d+$", s):
+                return Tk.INTEGER_LITERAL
+            elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
+                return Tk.FLOAT_LITERAL
+            
+            raise SyntaxError(f"Unexpected literal {s}.")
+
+        def check_id_or_key(s):
+            pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
+            if pattern.fullmatch(s):
+                return Tk.BOOL_LITERAL
+            return Tk.IDENTIFIER
+
+        St = self.TokenizerState
 
         state = St.INITIAL
         buffer = ''
-        prev_st = state
-        while True:
+        while state != St.FINISH:
             c = file.read(1)
 
             match state:
                 case St.INITIAL:
-                    if self._is_opening(c):
-                        state = St.OPEN_ARROW
-                    elif self._is_closing(c) and buffer != '':
-                        append_tk((Tk.CLOSE_BODY, buffer))
-                    elif self._is_closing(c):
-                        append_tk((Tk.CLOSE_PARAMS,))
-                    elif self._is_at_operator(c):
-                        state = St.GROUP_NAME
-                    elif self._is_assign_operator(c) and prev_st != St.ASSIGN_OPERATOR:
-                        append_tk((Tk.ASSIGN_OP,), 
-                                  p_st=St.ASSIGN_OPERATOR)
-                        state = St.ASSIGN_OPERATOR
-                    elif self._is_letter(c) and prev_st == St.ASSIGN_OPERATOR:
-                        state = St.LITERAL
-                    elif self._is_digit(c) and prev_st == St.ASSIGN_OPERATOR:
-                        state = St.LITERAL
-                    elif self._is_quote(c) and prev_st == St.ASSIGN_OPERATOR:
-                        buffer = c
-                        state = St.QUOTE
-                    elif self._is_letter(c):
-                        buffer = c
-                        state = St.IDENTIFIER
-                
-                case St.OPEN_ARROW:
-                    if self._is_digit(c):
-                        raise SyntaxError(buffer)
-                    elif self._is_letter(c):
+                    if is_delimiter(c):
+                        if is_operator(c):
+                            tokens.append((check_operator(c), c))
+                    elif is_letter(c):
                         buffer += c
-                    elif self._is_slash(c):
-                        state = St.CLOSE_BODY
-                    elif self._is_delimiter(c):
-                        append_tk((Tk.OPEN_PARAMS, buffer))
-                    elif self._is_at_operator(c):
-                        append_tk((Tk.OPEN_PARAMS, buffer), 
-                                  st=St.GROUP_NAME)
-                    else:
+                        state = St.READING_ID_OR_KEY
+                    elif is_digit(c) or is_dot(c):
                         buffer += c
+                        state = St.READING_NUMBER
+                    elif is_quote(c):
+                        state = St.READING_STRING
+                    elif c == '':
+                        state = St.FINISH
 
-                case St.GROUP_NAME:
-                    if self._is_delimiter(c):
-                        append_tk((Tk.GROUP_NAME, buffer))
-                    else:
-                        buffer += c
+                case St.READING_ID_OR_KEY:
+                    if is_delimiter(c):
+                        tokens.append((check_id_or_key(buffer), buffer))
 
-                case St.CLOSE_BODY:
-                    if self._is_closing(c):
-                        tokens.append((Tk.CLOSE_BODY,))
-                        state = St.INITIAL
-
-                case St.IDENTIFIER:
-                    if self._is_delimiter(c):
-                        append_tk((Tk.IDENTIFIER, buffer))
-                    elif self._is_assign_operator(c):
-                        tokens.append((Tk.IDENTIFIER, buffer))
+                        if is_operator(c):
+                            tokens.append((check_operator(c), c))
+                            
                         buffer = ''
-                        state = St.ASSIGN_OPERATOR
+                        state = St.INITIAL
                     else:
                         buffer += c
                 
-                case St.ASSIGN_OPERATOR:
-                    if self._is_delimiter(c):
-                        append_tk((Tk.ASSIGN_OP,), 
-                                  p_st=St.ASSIGN_OPERATOR)
-                    elif self._is_letter(c) or self._is_digit(c):
-                        append_tk((Tk.ASSIGN_OP,),
-                                  bf=c,
-                                  st=St.LITERAL,
-                                  p_st=St.ASSIGN_OPERATOR)
-                    elif self._is_quote(c):
-                        append_tk((Tk.ASSIGN_OP,),
-                                  bf=c,
-                                  st=St.QUOTE,
-                                  p_st=St.ASSIGN_OPERATOR)
-                    elif self._is_assign_operator(c):
-                        raise SyntaxError("Second assign operator")
+                case St.READING_NUMBER:
+                    if is_delimiter(c):
+                        tokens.append((check_number(buffer), buffer))
 
+                        if is_operator(c):
+                            tokens.append((check_operator(c), c))
 
-                case St.LITERAL:
-                    if self._is_delimiter(c):
-                        append_tk((Tk.LITERAL, buffer))
+                        buffer = ''
+                        state = St.INITIAL
+                    elif is_letter(c):
+                        raise SyntaxError(f"Unexpected literal {buffer}.")
+                    else:
+                        buffer += c
+                
+                case St.READING_STRING:
+                    if is_quote(c):
+                        tokens.append((Tk.STRING_LITERAL, buffer))
+                        buffer = ''
+                        state = St.INITIAL
                     else:
                         buffer += c
 
-                case St.QUOTE:
-                    if self._is_quote(c):
-                        append_tk((Tk.LITERAL, buffer))
-                    else:
-                        buffer += c
-
-            if c == '':
-                break
 
 
-import pathlib
-path = pathlib.Path(sys.argv[1])
+args = sys.argv
+if len(args) > 1:
+    path = pathlib.Path(sys.argv[1])
 
-if path.is_file():
-    with open(path, encoding="utf-8") as f:
-        tokens = []
-        LexicalAnalyzer().tokenize(tokens, f)
-        for tk in tokens:
-            print(tk)
+    if path.is_file():
+        with open(path, encoding="utf-8") as f:
+            tokens = []
+            LexicalAnalyzer().tokenize(tokens, f)
+            for tk in tokens:
+                print(tk)
