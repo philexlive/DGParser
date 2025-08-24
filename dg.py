@@ -3,6 +3,8 @@ import re
 import sys
 import pathlib
 import unittest
+from filecmp import DEFAULT_IGNORES
+
 
 class Tk(Enum):
     OPEN_ARROW=0
@@ -144,91 +146,97 @@ class Tokenizer:
         return Tk.IDENTIFIER
 
 
+class TokenIterator:
+    def __init__(self, data):
+        self.data = data
+        self.index = 0 
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index == len(self.data):
+            raise StopIteration
+        token = self.data[self.index]
+        self.index += 1
+        return token
+
+
+class Node:
+    pass
+
+class ValueNode(Node):
+    def __init__(self):
+        self.value = ''
+
+class AttrNode(Node):
+    def __init__(self, name):
+        self.name = name
+
+class NestedNode(Node):
+    def __init__(self):
+        self.attrs = []
+
+class DefinitionNode(Node):
+    def __init__(self):
+        self.nodes = []
+
+
 class Parser:
-    class St:
-        INITIAL=0
-        EXPECT_ATTR_OPENING=1
-        EXPECT_ATTR_CLOSING=2
-        EXPECT_BODY_CLOSING=3
-        FINISH=12
-        
-    
-    def parse(self, tokens, tree):
-        St = self.St
-        
-        cursor = 0
-        state = St.INITIAL
-        opened_bodies=0
+    def __init__(self, tki):
+        self.tki = tki
+        self.sym = ''
+        self._next_sym()
 
-        buffer = '' # Just visualization purpose
-        
-        while state != St.FINISH:
-            if cursor >= len(tokens):
-                state = St.FINISH
+    def _next_sym(self):
+        self.sym = next(self.tki)
 
-            match state:
-                case St.INITIAL:
-                    if tokens[cursor][0] == Tk.OPEN_ARROW:
-                        state = St.EXPECT_ATTR_OPENING
+    def _accept(self, sym):
+        if self.sym[0] == sym:
+            self._next_sym()
+            return True
+        return False
 
-                        # Just visualization purpose
-                        buffer += '\t'*opened_bodies
-                        buffer += tokens[cursor][1]
+    def _expect(self, sym):
+        if self._accept(sym):
+            return self.sym[1]
+        raise SyntaxError('Unexpected symbol')
 
-                case St.EXPECT_ATTR_OPENING:
-                    if tokens[cursor][0] == Tk.IDENTIFIER:
-                        state = St.EXPECT_ATTR_CLOSING
-                        opened_bodies += 1
 
-                        # Just visualization purpose
-                        buffer += tokens[cursor][1]
-                        print(buffer, end=' ')
-                        buffer = ''
-                    elif tokens[cursor][0] == Tk.SLASH_OPERATOR:
-                        state = St.EXPECT_BODY_CLOSING
-                        
-                        # Just visualization purpose
-                        buffer += tokens[cursor][1]
-                
-                case St.EXPECT_ATTR_CLOSING:
-                    if tokens[cursor][0] == Tk.SLASH_OPERATOR:
-                        state = St.EXPECT_BODY_CLOSING
+    def attr(self, name):
+        pass
 
-                        # Just visualization purpose
-                        buffer += tokens[cursor][1]
-                    elif tokens[cursor][0] == Tk.CLOSE_ARROW:
-                        state = St.INITIAL
+    def nested(self):
+        pass
 
-                        # Just visualization purpose
-                        buffer += tokens[cursor][1]
-                        print(buffer)
-                        buffer = ''
-                        print(("\t"*opened_bodies) + "This body could have children")
-                case St.EXPECT_BODY_CLOSING:
-                    if tokens[cursor][0] == Tk.CLOSE_ARROW:
-                        state = St.INITIAL
-                        opened_bodies -= 1
+    def definition(self):
+        if self._accept(Tk.OPEN_ARROW):
+            if self._accept(Tk.IDENTIFIER):
+                print('object defining')
+                self.definition()
+            elif self._accept(Tk.SLASH_OPERATOR):
+                self._expect(Tk.CLOSE_ARROW)
+                print('object defined')
+            else:
+                raise SyntaxError('Unexpected symbol')
+        elif self._accept(Tk.SLASH_OPERATOR):
+            self._expect(Tk.CLOSE_ARROW)
+            print('object defined')
+        elif self._accept(Tk.CLOSE_ARROW):
+            self.definition()
+        else:
+            self._next_sym()
 
-                        # Just visualization purpose
-                        buffer += tokens[cursor][1]
-                        if buffer.strip() == '</>':
-                            print(("\t" * (opened_bodies)) + buffer.strip())
-                        else:
-                            print(buffer)
-                        buffer = '' 
-
-                    else:
-                        raise SyntaxError("> was expected")
-                        
-
-            
-            cursor += 1
-        print(opened_bodies)
-
+    def parse(self):
+        try:
+            while True:
+                self.definition()
+        except StopIteration:
+            print('ended')
 
 class LexicalAnalyzer:
     tokenize = Tokenizer().tokenize
-    parse = Parser().parse
+
 
 args = sys.argv
 if len(args) > 1:
@@ -238,8 +246,6 @@ if len(args) > 1:
         with open(path, encoding="utf-8") as f:
             tokens = []
             LexicalAnalyzer().tokenize(tokens, f)
-            #for tk in tokens:
-            #    print(tk)
-            tree = {}
-            LexicalAnalyzer().parse(tokens, tree)
-            print(tree)
+
+            token_iterator = TokenIterator(tokens)
+            Parser(token_iterator).parse()

@@ -1,4 +1,4 @@
-<phyobj@self
+<phyobj1@self
     name="PhyObj"
 
     @pos x=0 y=0 >
@@ -6,6 +6,15 @@
     <phyobj@self
         name="RightHand"
     />
+
+    <phyobj@self
+        name="Tail" >
+
+        <phyobj4@self
+            name="Stick" />
+    </>
+
+    <phyobj@self name="Fangs"/>
 
     <phyobj@self
         name="LeftHand"
