@@ -203,11 +203,27 @@ class Parser:
         raise SyntaxError('Unexpected symbol')
 
 
-    def attr(self, name):
-        pass
+    def attr(self):
+        self._expect(Tk.ASSIGN_OPERATOR)
+        print('attr', end=' ')
+        if self._accept(Tk.STRING_LITERAL):
+            print('= string')
+        elif self._accept(Tk.INTEGER_LITERAL):
+            print('= integer')
+        elif self._accept(Tk.FLOAT_LITERAL):
+            print('= float')
+        elif self._accept(Tk.BOOL_LITERAL):
+            print('= bool')
+        else:
+            raise SyntaxError('Unexpected symbol')
 
     def nested(self):
-        pass
+        self._expect(Tk.IDENTIFIER)
+
+        while self._accept(Tk.IDENTIFIER):
+            self.attr()
+
+        print('nested defined')
 
     def definition(self):
         if self._accept(Tk.OPEN_ARROW):
@@ -224,6 +240,8 @@ class Parser:
             print('object defined')
         elif self._accept(Tk.CLOSE_ARROW):
             self.definition()
+        elif self._accept(Tk.AT_OPERATOR):
+            self.nested()
         else:
             self._next_sym()
 
