@@ -2,14 +2,12 @@ from enum import Enum
 import re
 import sys
 import pathlib
-import unittest
-from filecmp import DEFAULT_IGNORES
+from html.parser import starttagopen
 
 
 class Tk(Enum):
     OPEN_ARROW=0
     CLOSE_ARROW=1
-    AT_OPERATOR=2
     ASSIGN_OPERATOR=3
     SLASH_OPERATOR=4
     INTEGER_LITERAL=5
@@ -118,16 +116,15 @@ class Tokenizer:
         return s == '"'
 
     def is_operator(self, s):
-        return s in ['<','>','@','=','/']
+        return s in ['<', '>', '=', '/']
 
     def is_delimiter(self, s):
-        return s in [' ', '\n', '\t', '<', '>', '@', '=', '/', '']
+        return s in [' ', '\n', '\t', '<', '>', '=', '/', '']
 
 
     def check_operator(self, s):
         return {'<': Tk.OPEN_ARROW,
                 '>': Tk.CLOSE_ARROW,
-                '@': Tk.AT_OPERATOR,
                 '=': Tk.ASSIGN_OPERATOR,
                 '/': Tk.SLASH_OPERATOR }[s]
 
@@ -173,23 +170,28 @@ class AttrNode(Node):
     def __init__(self, name):
         self.name = name
 
-class NestedNode(Node):
+class StatementNode(Node):
     def __init__(self):
-        self.attrs = []
+        self.statements = []
 
 class DefinitionNode(Node):
     def __init__(self):
+        self.statements = []
         self.nodes = []
 
 
 class Parser:
+
     def __init__(self, tki):
         self.tki = tki
         self.sym = ''
         self._next_sym()
 
     def _next_sym(self):
-        self.sym = next(self.tki)
+        try:
+            self.sym = next(self.tki)
+        except StopIteration:
+            return
 
     def _accept(self, sym):
         if self.sym[0] == sym:
@@ -199,11 +201,11 @@ class Parser:
 
     def _expect(self, sym):
         if self._accept(sym):
-            return self.sym[1]
+            return
         raise SyntaxError('Unexpected symbol')
 
 
-    def attr(self):
+    def statement(self):
         self._expect(Tk.ASSIGN_OPERATOR)
         print('attr', end=' ')
         if self._accept(Tk.STRING_LITERAL):
@@ -215,45 +217,39 @@ class Parser:
         elif self._accept(Tk.BOOL_LITERAL):
             print('= bool')
         else:
-            raise SyntaxError('Unexpected symbol')
+            raise SyntaxError('Unexpected symbol or object disclosed')
 
-    def nested(self):
+    def expect_closing(self):
+        if self._accept(Tk.SLASH_OPERATOR):
+            self._expect(Tk.CLOSE_ARROW)
+            return True
+        return False
+
+    def definition(self):
         self._expect(Tk.IDENTIFIER)
 
         while self._accept(Tk.IDENTIFIER):
-            self.attr()
+            self.statement()
 
-        print('nested defined')
+        if self.expect_closing():
+            return
 
-    def definition(self):
-        if self._accept(Tk.OPEN_ARROW):
-            if self._accept(Tk.IDENTIFIER):
-                print('object defining')
-                self.definition()
-            elif self._accept(Tk.SLASH_OPERATOR):
-                self._expect(Tk.CLOSE_ARROW)
-                print('object defined')
-            else:
-                raise SyntaxError('Unexpected symbol')
-        elif self._accept(Tk.SLASH_OPERATOR):
-            self._expect(Tk.CLOSE_ARROW)
-            print('object defined')
-        elif self._accept(Tk.CLOSE_ARROW):
+        self._expect(Tk.CLOSE_ARROW)
+
+        while self._accept(Tk.OPEN_ARROW): # Contaminated
+            if self.expect_closing():
+                return
+
             self.definition()
-        elif self._accept(Tk.AT_OPERATOR):
-            self.nested()
-        else:
-            self._next_sym()
+
+
+        raise SyntaxError('Object disclosed')
+
 
     def parse(self):
-        try:
-            while True:
-                self.definition()
-        except StopIteration:
-            print('ended')
+        while self._accept(Tk.OPEN_ARROW):
+            self.definition()
 
-class LexicalAnalyzer:
-    tokenize = Tokenizer().tokenize
 
 
 args = sys.argv
@@ -263,7 +259,7 @@ if len(args) > 1:
     if path.is_file():
         with open(path, encoding="utf-8") as f:
             tokens = []
-            LexicalAnalyzer().tokenize(tokens, f)
-
+            Tokenizer().tokenize(tokens, f)
+            print(tokens)
             token_iterator = TokenIterator(tokens)
             Parser(token_iterator).parse()

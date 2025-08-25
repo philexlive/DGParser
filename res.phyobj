@@ -1,32 +1,32 @@
-<phyobj1@self
-    name="PhyObj"
+<phyobj1
+    name="PhyObj">
 
-    @pos x=0 y=0 >
-    
-    <phyobj@self
+    <phyobj2
         name="RightHand"
     />
 
-    <phyobj@self
+    <phyobj3
         name="Tail" >
 
-        <phyobj4@self
+        <phyobj4
             name="Stick" />
     </>
 
-    <phyobj@self name="Fangs"/>
+    <phyobj5 name="Fangs" />
 
-    <phyobj@self
+    <phyobj6
         name="LeftHand"
-	inherit=false
-
+	    inherit=false
         pos="res/lefthand.position" >
-    
-        <phyobj@self
+
+        <phyobj7
             name="PlasmaDrill"
             inherit=True
+            x=1.1
+            y=.2 />
+    </>
 
-            @velocity x=1.1 y=.2
-        />
+    <phyobj8
+        name="Tail" >
     </>
 </>
