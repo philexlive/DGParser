@@ -159,6 +159,7 @@ class AttributeNode(Node):
 
 class DefinitionNode(Node):
     def __init__(self):
+        self.definition_type = None
         self.attributes = []
         self.nodes = []
 
@@ -221,9 +222,15 @@ class Parser:
                 return True
             return False
 
+        # Expect is identifier and set it as an object's type
+        definition_type = self._sym[1]
+
         self._expect(Tk.IDENTIFIER)
 
         node = DefinitionNode()
+        node.definition_type = definition_type
+
+        del definition_type
 
         # Attributes
         identifier = self._sym[1]

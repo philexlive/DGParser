@@ -1,5 +1,5 @@
 <PhyObj
-    name="PhyObj">
+    name="Player">
 
     <PhyObj
         name="RightHand"
@@ -11,7 +11,7 @@
         <PhyObj
             name="Stick" />
     </>
-
+    <Text text="Some another text" offset=4/>
     <PhyObj name="Fangs" />
 
     <PhyObj
