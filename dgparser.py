@@ -1,7 +1,5 @@
 from enum import Enum
 import re
-import sys
-import pathlib
 
 
 class Tk(Enum):
@@ -9,13 +7,56 @@ class Tk(Enum):
     CLOSE_ARROW=1
     ASSIGN_OPERATOR=3
     SLASH_OPERATOR=4
-    LITERAL=5
-    IDENTIFIER=6
+    NUMBER_LITERAL=5
+    FLOAT_LITERAL=6
+    BOOL_LITERAL=7
+    STR_LITERAL=8
+    IDENTIFIER=9
 
+def check_id_or_key(s):
+    pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
+    if pattern.fullmatch(s):
+        return Tk.BOOL_LITERAL
+    return Tk.IDENTIFIER
+
+def check_number(s):
+    if re.fullmatch(r"^[-+]?\d+$", s):
+        return Tk.NUMBER_LITERAL
+    elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
+        return Tk.FLOAT_LITERAL
+
+    raise SyntaxError(f"Unexpected literal {s}.")
+
+def check_operator(s):
+    return {'<': Tk.OPEN_ARROW,
+            '>': Tk.CLOSE_ARROW,
+            '=': Tk.ASSIGN_OPERATOR,
+            '/': Tk.SLASH_OPERATOR}[s]
+
+def is_delimiter(s):
+    return s in [' ', '\n', '\t', '<', '>', '=', '/', '']
+
+def is_operator(s):
+    return s in ['<', '>', '=', '/']
+
+def is_quote(s):
+    return s == '"'
+
+def is_dot(s):
+    return s == '.'
+
+def is_digit(s):
+    if re.fullmatch(r"^\d$", s):
+        return True
+    return False
+
+def is_letter(s):
+    if re.fullmatch(r"^[a-zA-Z]$", s):
+        return True
+    return False
 
 
 class Tokenizer:
-
     class St(Enum):
         INITIAL=0
         FINISH=1
@@ -23,43 +64,29 @@ class Tokenizer:
         READING_NUMBER=3
         READING_STRING=4
 
-
     def tokenize(self, tokens, file):
-        St = self.St
+        st = self.St
         
-
-        is_delimiter = self.is_delimiter
-        is_operator = self.is_operator
-        is_letter = self.is_letter
-        is_digit = self.is_digit
-        is_quote = self.is_quote
-        is_dot = self.is_dot
-
-        check_operator = self.check_operator
-        check_number = self.check_number
-        check_id_or_key = self.check_id_or_key
-        
-        
-        state = St.INITIAL
+        state = st.INITIAL
         buffer = ''
-        while state != St.FINISH:
+        while state != st.FINISH:
             c = file.read(1)
 
             match state:
-                case St.INITIAL:
+                case st.INITIAL:
                     if is_delimiter(c):
                         if is_operator(c):
                             tokens.append((check_operator(c), c))
                     elif is_letter(c):
                         buffer += c
-                        state = St.READING_ID_OR_KEY
+                        state = st.READING_ID_OR_KEY
                     elif is_digit(c) or is_dot(c):
                         buffer += c
-                        state = St.READING_NUMBER
+                        state = st.READING_NUMBER
                     elif is_quote(c):
-                        state = St.READING_STRING
+                        state = st.READING_STRING
 
-                case St.READING_ID_OR_KEY:
+                case st.READING_ID_OR_KEY:
                     if is_delimiter(c):
                         tokens.append((check_id_or_key(buffer), buffer))
 
@@ -67,11 +94,11 @@ class Tokenizer:
                             tokens.append((check_operator(c), c))
                             
                         buffer = ''
-                        state = St.INITIAL
+                        state = st.INITIAL
                     else:
                         buffer += c
                 
-                case St.READING_NUMBER:
+                case st.READING_NUMBER:
                     if is_delimiter(c):
                         tokens.append((check_number(buffer), buffer))
 
@@ -79,66 +106,21 @@ class Tokenizer:
                             tokens.append((check_operator(c), c))
 
                         buffer = ''
-                        state = St.INITIAL
+                        state = st.INITIAL
                     elif is_letter(c):
                         raise SyntaxError(f"Unexpected literal {buffer}.")
                     else:
                         buffer += c
                 
-                case St.READING_STRING:
+                case st.READING_STRING:
                     if is_quote(c):
-                        tokens.append((Tk.LITERAL, buffer))
+                        tokens.append((Tk.STR_LITERAL, buffer))
                         buffer = ''
-                        state = St.INITIAL
+                        state = st.INITIAL
                     else:
                         buffer += c
             if c == '':
-                state = St.FINISH
-
-
-    def is_letter(self, s):
-        if re.fullmatch(r"^[a-zA-Z]$", s):
-            return True
-        return False
-
-    def is_digit(self, s):
-        if re.fullmatch(r"^\d$", s):
-            return True
-        return False
-
-    def is_dot(self, s):
-        return s == '.'
-
-    def is_quote(self, s):
-        return s == '"'
-
-    def is_operator(self, s):
-        return s in ['<', '>', '=', '/']
-
-    def is_delimiter(self, s):
-        return s in [' ', '\n', '\t', '<', '>', '=', '/', '']
-
-
-    def check_operator(self, s):
-        return {'<': Tk.OPEN_ARROW,
-                '>': Tk.CLOSE_ARROW,
-                '=': Tk.ASSIGN_OPERATOR,
-                '/': Tk.SLASH_OPERATOR }[s]
-
-
-    def check_number(self, s):
-        if re.fullmatch(r"^[-+]?\d+$", s):
-            return Tk.LITERAL
-        elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
-            return Tk.LITERAL
-            
-        raise SyntaxError(f"Unexpected literal {s}.")
-
-    def check_id_or_key(self, s):
-        pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
-        if pattern.fullmatch(s):
-            return Tk.LITERAL
-        return Tk.IDENTIFIER
+                state = st.FINISH
 
 
 class TokenIterator:
@@ -157,6 +139,12 @@ class TokenIterator:
         return token
 
 
+class ValType(Enum):
+    INT='int'
+    FLOAT='float'
+    BOOL='bool'
+    STR='str'
+
 class Node:
     pass
 
@@ -165,6 +153,7 @@ class AttributeNode(Node):
     def __init__(self, name):
         self.name = name
         self.value = ''
+        self.val_type = None
 
 
 class DefinitionNode(Node):
@@ -172,22 +161,23 @@ class DefinitionNode(Node):
         self.attributes = []
         self.nodes = []
 
+
 class Parser:
     tree = DefinitionNode()
 
     def __init__(self, tki):
-        self.tki = tki
-        self.sym = ''
+        self._tki = tki
+        self._sym = ''
         self._next_sym()
 
     def _next_sym(self):
         try:
-            self.sym = next(self.tki)
+            self._sym = next(self._tki)
         except StopIteration:
             return
 
     def _accept(self, sym):
-        if self.sym[0] == sym:
+        if self._sym[0] == sym:
             self._next_sym()
             return True
         return False
@@ -198,19 +188,32 @@ class Parser:
         raise SyntaxError('Unexpected symbol')
 
 
-    def attribute(self, name):
+    def _attribute(self, name):
         self._expect(Tk.ASSIGN_OPERATOR)
         node = AttributeNode(name)
 
-        value = self.sym[1]
-        if self._accept(Tk.LITERAL):
+        value = self._sym[1]
+        if self._accept(Tk.NUMBER_LITERAL):
             node.value = value
+            node.val_type = ValType.INT
+            return node
+        if self._accept(Tk.FLOAT_LITERAL):
+            node.value = value
+            node.val_type = ValType.FLOAT
+            return node
+        if self._accept(Tk.BOOL_LITERAL):
+            node.value = value
+            node.val_type = ValType.BOOL
+            return node
+        if self._accept(Tk.STR_LITERAL):
+            node.value = value
+            node.val_type = ValType.STR
             return node
         else:
             raise SyntaxError('Unexpected symbol or object disclosed')
 
 
-    def definition(self):
+    def _definition(self):
         def expect_closing():
             if self._accept(Tk.SLASH_OPERATOR):
                 self._expect(Tk.CLOSE_ARROW)
@@ -222,10 +225,10 @@ class Parser:
         node = DefinitionNode()
 
         # Attributes
-        identifier = self.sym[1]
+        identifier = self._sym[1]
         while self._accept(Tk.IDENTIFIER):
-            node.attributes.append(self.attribute(identifier))
-            identifier = self.sym[1]
+            node.attributes.append(self._attribute(identifier))
+            identifier = self._sym[1]
         del identifier
 
         if expect_closing():
@@ -237,28 +240,10 @@ class Parser:
             if expect_closing():
                 return node
 
-            node.nodes.append(self.definition())
+            node.nodes.append(self._definition())
 
         raise SyntaxError('Object disclosed')
 
-
     def parse(self, tree):
         while self._accept(Tk.OPEN_ARROW):
-            tree.append(self.definition())
-
-
-
-args = sys.argv
-if len(args) > 1:
-    path = pathlib.Path(sys.argv[1])
-
-    if path.is_file():
-        with open(path, encoding="utf-8") as f:
-            tokens = []
-            Tokenizer().tokenize(tokens, f)
-
-            tree = []
-            token_iterator = TokenIterator(tokens)
-            Parser(token_iterator).parse(tree)
-            del tokens
-            print(tree)
+            tree.append(self._definition())

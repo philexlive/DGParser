@@ -1,4 +1,4 @@
-from dg import LexicalAnalyzer
+from dgparser import LexicalAnalyzer
 import unittest
 
 class TestTokenizer(unittest.TestCase):
