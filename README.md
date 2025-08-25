@@ -5,6 +5,6 @@ A parser for [Dungeon](https://github.com/philexlive/Dungeon.git)'s custom notat
 
 # TODOs
 - [x] Add tokenizer
-- [ ] Add parser
-- [ ] Add error handling
+- [x] Add parser
+- [x] Add error handling
 - [ ] Write docs
