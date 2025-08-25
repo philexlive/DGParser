@@ -6,7 +6,7 @@
     />
 
     <phyobj3
-        name="Tail" >
+        name="Tail">
 
         <phyobj4
             name="Stick" />

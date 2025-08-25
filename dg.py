@@ -2,7 +2,6 @@ from enum import Enum
 import re
 import sys
 import pathlib
-from html.parser import starttagopen
 
 
 class Tk(Enum):
@@ -10,12 +9,10 @@ class Tk(Enum):
     CLOSE_ARROW=1
     ASSIGN_OPERATOR=3
     SLASH_OPERATOR=4
-    INTEGER_LITERAL=5
-    FLOAT_LITERAL=6
-    BOOL_LITERAL=7
-    STRING_LITERAL=8
-    IDENTIFIER=9
-    
+    LITERAL=5
+    IDENTIFIER=6
+
+
 
 class Tokenizer:
 
@@ -90,7 +87,7 @@ class Tokenizer:
                 
                 case St.READING_STRING:
                     if is_quote(c):
-                        tokens.append((Tk.STRING_LITERAL, buffer))
+                        tokens.append((Tk.LITERAL, buffer))
                         buffer = ''
                         state = St.INITIAL
                     else:
@@ -100,11 +97,11 @@ class Tokenizer:
 
 
     def is_letter(self, s):
-        if re.fullmatch(r"^[a-zA-Z]", s):
+        if re.fullmatch(r"^[a-zA-Z]$", s):
             return True
         return False
 
-    def is_digit(self, s): 
+    def is_digit(self, s):
         if re.fullmatch(r"^\d$", s):
             return True
         return False
@@ -128,18 +125,19 @@ class Tokenizer:
                 '=': Tk.ASSIGN_OPERATOR,
                 '/': Tk.SLASH_OPERATOR }[s]
 
+
     def check_number(self, s):
         if re.fullmatch(r"^[-+]?\d+$", s):
-            return Tk.INTEGER_LITERAL
+            return Tk.LITERAL
         elif re.fullmatch(r"^[-+]?(\d+|\d*\.\d+)$", s):
-            return Tk.FLOAT_LITERAL
+            return Tk.LITERAL
             
         raise SyntaxError(f"Unexpected literal {s}.")
 
     def check_id_or_key(self, s):
         pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
         if pattern.fullmatch(s):
-            return Tk.BOOL_LITERAL
+            return Tk.LITERAL
         return Tk.IDENTIFIER
 
 
@@ -162,25 +160,20 @@ class TokenIterator:
 class Node:
     pass
 
-class ValueNode(Node):
-    def __init__(self):
-        self.value = ''
 
-class AttrNode(Node):
+class AttributeNode(Node):
     def __init__(self, name):
         self.name = name
+        self.value = ''
 
-class StatementNode(Node):
-    def __init__(self):
-        self.statements = []
 
 class DefinitionNode(Node):
     def __init__(self):
-        self.statements = []
+        self.attributes = []
         self.nodes = []
 
-
 class Parser:
+    tree = DefinitionNode()
 
     def __init__(self, tki):
         self.tki = tki
@@ -205,50 +198,53 @@ class Parser:
         raise SyntaxError('Unexpected symbol')
 
 
-    def statement(self):
+    def attribute(self, name):
         self._expect(Tk.ASSIGN_OPERATOR)
-        print('attr', end=' ')
-        if self._accept(Tk.STRING_LITERAL):
-            print('= string')
-        elif self._accept(Tk.INTEGER_LITERAL):
-            print('= integer')
-        elif self._accept(Tk.FLOAT_LITERAL):
-            print('= float')
-        elif self._accept(Tk.BOOL_LITERAL):
-            print('= bool')
+        node = AttributeNode(name)
+
+        value = self.sym[1]
+        if self._accept(Tk.LITERAL):
+            node.value = value
+            return node
         else:
             raise SyntaxError('Unexpected symbol or object disclosed')
 
-    def expect_closing(self):
-        if self._accept(Tk.SLASH_OPERATOR):
-            self._expect(Tk.CLOSE_ARROW)
-            return True
-        return False
 
     def definition(self):
+        def expect_closing():
+            if self._accept(Tk.SLASH_OPERATOR):
+                self._expect(Tk.CLOSE_ARROW)
+                return True
+            return False
+
         self._expect(Tk.IDENTIFIER)
 
-        while self._accept(Tk.IDENTIFIER):
-            self.statement()
+        node = DefinitionNode()
 
-        if self.expect_closing():
-            return
+        # Attributes
+        identifier = self.sym[1]
+        while self._accept(Tk.IDENTIFIER):
+            node.attributes.append(self.attribute(identifier))
+            identifier = self.sym[1]
+        del identifier
+
+        if expect_closing():
+            return node
 
         self._expect(Tk.CLOSE_ARROW)
 
         while self._accept(Tk.OPEN_ARROW): # Contaminated
-            if self.expect_closing():
-                return
+            if expect_closing():
+                return node
 
-            self.definition()
-
+            node.nodes.append(self.definition())
 
         raise SyntaxError('Object disclosed')
 
 
-    def parse(self):
+    def parse(self, tree):
         while self._accept(Tk.OPEN_ARROW):
-            self.definition()
+            tree.append(self.definition())
 
 
 
@@ -260,6 +256,9 @@ if len(args) > 1:
         with open(path, encoding="utf-8") as f:
             tokens = []
             Tokenizer().tokenize(tokens, f)
-            print(tokens)
+
+            tree = []
             token_iterator = TokenIterator(tokens)
-            Parser(token_iterator).parse()
+            Parser(token_iterator).parse(tree)
+            del tokens
+            print(tree)
