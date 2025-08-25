@@ -1,32 +1,31 @@
-<phyobj1
+<PhyObj
     name="PhyObj">
 
-    <phyobj2
+    <PhyObj
         name="RightHand"
     />
 
-    <phyobj3
+    <PhyObj
         name="Tail">
 
-        <phyobj4
+        <PhyObj
             name="Stick" />
     </>
 
-    <phyobj5 name="Fangs" />
+    <PhyObj name="Fangs" />
 
-    <phyobj6
+    <PhyObj
         name="LeftHand"
-	    inherit=false
-        pos="res/lefthand.position" >
+	    inherit=false >
 
-        <phyobj7
+        <PhyObj
             name="PlasmaDrill"
             inherit=True
             x=1.1
             y=.2 />
     </>
 
-    <phyobj8
+    <PhyObj
         name="Tail" >
     </>
 </>

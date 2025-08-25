@@ -11,10 +11,10 @@ if len(args) > 1:
             tokens = []
             Tokenizer().tokenize(tokens, f)
 
-            tree = []
             token_iterator = TokenIterator(tokens)
-            Parser(token_iterator).parse(tree)
+            tree = Parser(token_iterator).parse()
             del tokens
             print(tree)
-            print(tree[0].nodes[3].nodes[0].attributes[1].val_type)
-            print(tree[0].nodes[3].nodes[0].attributes[1].value)
+
+            print(tree.nodes[3].nodes[0].attributes[1].val_type)
+            print(tree.nodes[3].nodes[0].attributes[1].value)

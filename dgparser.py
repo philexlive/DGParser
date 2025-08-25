@@ -1,5 +1,6 @@
 from enum import Enum
 import re
+from unittest import expectedFailure
 
 
 class Tk(Enum):
@@ -244,6 +245,15 @@ class Parser:
 
         raise SyntaxError('Object disclosed')
 
-    def parse(self, tree):
-        while self._accept(Tk.OPEN_ARROW):
-            tree.append(self._definition())
+    def parse(self):
+        if self._tki.index >= len(self._tki.data):
+            raise SyntaxError('Empty data')
+
+        self._expect(Tk.OPEN_ARROW)
+
+        result = self._definition()
+
+        if self._tki.index < len(self._tki.data):
+            raise SyntaxError('Extra symbols were added after object implementation')
+
+        return result
