@@ -1,6 +1,5 @@
 from enum import Enum
 import re
-from unittest import expectedFailure
 
 
 class Tk(Enum):
@@ -65,7 +64,9 @@ class Tokenizer:
         READING_NUMBER=3
         READING_STRING=4
 
-    def tokenize(self, tokens, file):
+
+    def tokenize(self, file):
+        tokens = Tokens()
         st = self.St
         
         state = st.INITIAL
@@ -123,9 +124,14 @@ class Tokenizer:
             if c == '':
                 state = st.FINISH
 
+        return tokens
 
-class TokenIterator:
-    def __init__(self, data):
+
+class Tokens:
+    def __init__(self, data=None):
+        if data is None:
+            data = []
+
         self.data = data
         self.index = 0 
 
@@ -133,11 +139,15 @@ class TokenIterator:
         return self
 
     def __next__(self):
-        if self.index == len(self.data):
+        if self.index >= len(self.data):
+            # self.index = 0
             raise StopIteration
         token = self.data[self.index]
         self.index += 1
         return token
+
+    def append(self, item):
+        self.data.append(item)
 
 
 class ValType(Enum):
@@ -146,18 +156,14 @@ class ValType(Enum):
     BOOL='bool'
     STR='str'
 
-class Node:
-    pass
-
-
-class AttributeNode(Node):
+class AttributeNode:
     def __init__(self, name):
         self.name = name
         self.value = ''
         self.val_type = None
 
 
-class DefinitionNode(Node):
+class DefinitionNode:
     def __init__(self):
         self.definition_type = None
         self.attributes = []
@@ -167,14 +173,14 @@ class DefinitionNode(Node):
 class Parser:
     tree = DefinitionNode()
 
-    def __init__(self, tki):
-        self._tki = tki
-        self._sym = ''
+    def __init__(self, tokens):
+        self._tokens = tokens
+        self._sym = None
         self._next_sym()
 
     def _next_sym(self):
         try:
-            self._sym = next(self._tki)
+            self._sym = next(self._tokens)
         except StopIteration:
             return
 
@@ -253,14 +259,14 @@ class Parser:
         raise SyntaxError('Object disclosed')
 
     def parse(self):
-        if self._tki.index >= len(self._tki.data):
+        if self._tokens.index >= len(self._tokens.data):
             raise SyntaxError('Empty data')
 
         self._expect(Tk.OPEN_ARROW)
 
-        result = self._definition()
+        ast = self._definition()
 
-        if self._tki.index < len(self._tki.data):
+        if self._tokens.index < len(self._tokens.data):
             raise SyntaxError('Extra symbols were added after object implementation')
 
-        return result
+        return ast

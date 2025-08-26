@@ -1,0 +1,9 @@
+<PhyObj
+    name="Player"
+    x=87.234
+    y=2.0 >
+
+    <PhyObj
+        name="RightHand"
+    />
+</>
