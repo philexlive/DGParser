@@ -10,7 +10,8 @@ class TokensStream:
         return self
 
     def __next__(self):
-        if self.index >= len(self.data):
+        if self.index == len(self.data):
+            self.index = 0
             raise StopIteration
         item = self.data[self.index]
         self.index += 1

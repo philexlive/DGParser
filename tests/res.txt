@@ -11,3 +11,4 @@
 
     <Sprite><Texture resource="res/some_texture.texture"/></>
 </>
+</>

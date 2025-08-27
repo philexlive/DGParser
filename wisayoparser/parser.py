@@ -118,7 +118,7 @@ class Parser:
 
         ast = self._definition()
 
-        if self._stream.index < len(self._stream.data):
+        if self._stream.index > 0:
             raise ParsingError('Extra symbols were added after object implementation')
 
         return ast
