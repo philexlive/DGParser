@@ -63,10 +63,12 @@ The AST nodes represent two implementations `DefinitionNode` and `AttributeNode`
 - `nodes`: Represents its child-parent relation, there could be its children **definition** nodes
 
 **Attributes**:
+
 - `name`: Represents field name of the **definition** it's in.
 - `value`: Contains one primitve to be assigned to that field.
 
 It will look something like this:
+
 ```
 DefinitionNode('GameObject')
     AttributeNode('name', 'Player')
@@ -78,6 +80,3 @@ DefinitionNode('GameObject')
         ...
     ...
 ```
-
-...
-``
