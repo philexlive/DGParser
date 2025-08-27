@@ -1,23 +1,33 @@
 import unittest
-from src.wisayoparser.parser import Parser, Tokenizer, Tokens
+from wisayoparser import Tokenizer, Parser, TokensStream
+from wisayoparser.tokenname import OpenArrow, Identifier
 
 
 class TestTokenizer(unittest.TestCase):
 
     def test_gives_ast(self):
         ast = None
-        with open('tests/res.phyobj') as f:
-            try:
-                # Tokenization
-                tokens = Tokenizer().tokenize(f)
+        with open('tests/res.txt') as f:
+            # Tokenization
+            tokenizer = Tokenizer()
 
-                ast = Parser(tokens).parse()
-            except SyntaxError as e:
-                print(f"Error: {e}")
+            stream = TokensStream()
+            tokenizer.tokenize(f, stream)
 
-        expected = 'RightHand'
-        actual = ast.nodes[0].attributes[0].value
-        self.assertEqual(expected, actual)
+            ast = Parser(stream).parse()
+
+        self.assertEqual('RightHand', ast.nodes[0].attributes[0].value)
+        self.assertEqual('Texture', ast.nodes[1].nodes[0].name)
+        self.assertEqual(2.0, ast.attributes[2].value)
+
+
+    def test_tokens(self):
+        tokenizer = Tokenizer()
+        with open('tests/res.txt') as f:
+            stream = TokensStream()
+            tokenizer.tokenize(f, stream)
+            self.assertIsInstance(next(stream), OpenArrow)
+            self.assertIsInstance(next(stream), Identifier)
 
 
 if __name__ == '__main__':

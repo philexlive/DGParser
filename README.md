@@ -1,56 +1,49 @@
 # About
 
-A parser for custom domain specific language.
+A parser for custom domain-specific language.
 
-Primarily, the parser is made for [Wisayo Engine](https://github.com/philexlive/WisayoEngine), I recommend to get acquainted with.
+First of all, the parser is made for the [Wisayo Engine](https://github.com/philexlive/WisayoEngine), I recommend you check it out.
 
-# How to use
-
-This parser hase three main classes being used in your pipeline:
+This parser has three main classes which will be used in your code:
 
 - `Tokenizer`: Handles tokenization of any row file.
-- `Tokens`: Iterable class containing tokens
+- `Stream`: Iterable class containing tokens
 - `Parser`: Handles parsing from Tokens instance
 
-## Sample
+## Quick start
 
-Code example:
+**Install dependencies:**
+
+```bash
+pip install git+https://github.com/philexlive/WisayoParser.git
+```
+
+**Script file:**
 
 ```python
-from wisayo.parser import Tokenizer, Parser
+from wisayoparser import Tokenizer, Parser, TokensStream
 
-with open('res.phyobj') as f:
-    try:
-        # Tokenization
-        tokens = Tokenizer().tokenize(f)
-        
-        print(tokens)
+with open('player.txt') as f:
+    tokenizer = Tokenizer()
 
-        # Parsing
-        ast = Parser(tokens).parse()
-        
-        print(ast)
-        print(ast.nodes[0].attributes[0].value)
-    except SyntaxError as e:
-        print(f"Error: {e}")
+    stream = TokensStream()
+    tokenizer.tokenize(f, stream)
+
+    ast = Parser(stream).parse()
 ```
 
-Your object to parse:
+**Object to be parsed:**
 
 ```
-<PhyObj
+<GameObject
     name="Player"
-    x=87.234
+    x=87.2
     y=2.0 >
 
-    <PhyObj
-        name="RightHand"
-    />
+    <GameObject name="RightHand" />
+
+    <Sprite>
+        <Texture resource="res/some_texture.texture" />
+    </>
 </>
 ```
-
-# TODOs
-- [x] Add tokenizer
-- [x] Add parser
-- [x] Add error handling
-- [ ] Write docs

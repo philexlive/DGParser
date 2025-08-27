@@ -1,0 +1,13 @@
+<GameObject
+    name="Player"
+    x=87.2
+    y=2.0 >
+
+    <
+
+    GameObject name="RightHand"
+
+    />
+
+    <Sprite><Texture resource="res/some_texture.texture"/></>
+</>
