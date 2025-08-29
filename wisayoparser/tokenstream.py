@@ -11,7 +11,6 @@ class TokensStream:
 
     def __next__(self):
         if self.index == len(self.data):
-            self.index = 0
             raise StopIteration
         item = self.data[self.index]
         self.index += 1
@@ -19,3 +18,6 @@ class TokensStream:
 
     def append(self, item):
         self.data.append(item)
+
+    def reset(self):
+        self.index = 0

@@ -125,3 +125,4 @@ class Tokenizer:
             if c == '':
                 state = st.FINISH
 
+        stream.reset()
