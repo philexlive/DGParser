@@ -7,10 +7,17 @@ class TokenizationError(Exception): pass
 
 
 def check_id_or_key(s):
+    """Check lexeme is the keyword or identifier
+
+    :param s: str - input lexeme
+    :return:
+    """
     pattern = re.compile(r"^(true|false)$", re.IGNORECASE)
     if pattern.fullmatch(s):
         return tokenname.BoolLiteral(s)
-    return tokenname.Identifier(s)
+    elif re.fullmatch(r"^[a-zA-Z].*$", s):
+        return tokenname.Identifier(s)
+    raise TokenizationError(f"Wrong lexeme {s}")
 
 
 def check_number(s):
@@ -25,17 +32,19 @@ def check_operator(s):
     return {
         '<': tokenname.OpenArrow(),
         '>': tokenname.CloseArrow(),
-        '=': tokenname.AssignOperator(),
-        '/': tokenname.SlashOperator()
+        '=': tokenname.Assign(),
+        '/': tokenname.Slash(),
+        '+': tokenname.Plus(),
+        '-': tokenname.Minus()
     }[s]
 
 
 def is_delimiter(s):
-    return s in [' ', '\n', '\t', '<', '>', '=', '/', '']
+    return s in [' ', '\n', '\t', '<', '>', '=', '/', '', '-', '+']
 
 
 def is_operator(s):
-    return s in ['<', '>', '=', '/']
+    return s in ['<', '>', '=', '/', '-', '+']
 
 
 def is_quote(s):
@@ -56,6 +65,7 @@ def is_letter(s):
     if re.fullmatch(r"^[a-zA-Z]$", s):
         return True
     return False
+
 
 
 class Tokenizer:
@@ -81,13 +91,15 @@ class Tokenizer:
                         if is_operator(c):
                             stream.append(check_operator(c))
                     elif is_letter(c):
-                        buffer += c
                         state = st.READING_ID_OR_KEY
-                    elif is_digit(c) or is_dot(c):
                         buffer += c
+                    elif is_digit(c) or is_dot(c):
                         state = st.READING_NUMBER
+                        buffer += c
                     elif is_quote(c):
                         state = st.READING_STRING
+                    else:
+                        raise TokenizationError(f"{c, file.tell()}")
 
                 case st.READING_ID_OR_KEY:
                     if is_delimiter(c):

@@ -52,7 +52,7 @@ class Parser:
 
 
     def _attribute(self, name):
-        self._expect(tk.AssignOperator)
+        self._expect(tk.Assign)
 
         value = self._sym.value
         if self._accept(tk.NumberLiteral):
@@ -75,7 +75,7 @@ class Parser:
 
         # Open definition
         def expect_closing():
-            if self._accept(tk.SlashOperator):
+            if self._accept(tk.Slash):
                 self._expect(tk.CloseArrow)
                 return True
             return False

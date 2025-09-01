@@ -21,15 +21,23 @@ class CloseArrow(Token):
         super().__init__(None)
 
 
-class AssignOperator(Token):
+class Assign(Token):
     def __init__(self):
         super().__init__(None)
 
 
-class SlashOperator(Token):
+class Slash(Token):
     def __init__(self):
         super().__init__(None)
 
+class Plus(Token):
+    def __init__(self):
+        super().__init__(None)
+
+
+class Minus(Token):
+    def __init__(self):
+        super().__init__(None)
 
 class Identifier(Token): pass
 
@@ -44,3 +52,4 @@ class BoolLiteral(Token): pass
 
 
 class StringLiteral(Token): pass
+

@@ -1,5 +1,6 @@
 import unittest
 from wisayoparser import Tokenizer, Parser, TokensStream
+from wisayoparser.tokenizer import TokenizationError
 from wisayoparser.tokenname import OpenArrow, Identifier
 
 
