@@ -78,6 +78,14 @@ class Tokenizer:
 
 
     def tokenize(self, file, stream):
+        def clean_buffer():
+            nonlocal buffer
+            buffer = ''
+
+        def append_buffer(s):
+            nonlocal buffer
+            buffer += s
+
         st = self.St
         
         state = st.INITIAL
@@ -92,10 +100,10 @@ class Tokenizer:
                             stream.append(check_operator(c))
                     elif is_letter(c):
                         state = st.READING_ID_OR_KEY
-                        buffer += c
+                        append_buffer(c)
                     elif is_digit(c) or is_dot(c):
                         state = st.READING_NUMBER
-                        buffer += c
+                        append_buffer(c)
                     elif is_quote(c):
                         state = st.READING_STRING
                     else:
@@ -107,12 +115,14 @@ class Tokenizer:
 
                         if is_operator(c):
                             stream.append(check_operator(c))
-                            
-                        buffer = ''
+
                         state = st.INITIAL
+                        clean_buffer()
+                    elif is_letter(c) or is_digit(c):
+                        append_buffer(c)
                     else:
-                        buffer += c
-                
+                        raise TokenizationError(f"{c, file.tell()}")
+
                 case st.READING_NUMBER:
                     if is_delimiter(c):
                         stream.append(check_number(buffer))
@@ -120,20 +130,21 @@ class Tokenizer:
                         if is_operator(c):
                             stream.append(check_operator(c))
 
-                        buffer = ''
+                        clean_buffer()
                         state = st.INITIAL
-                    elif is_letter(c):
-                        raise TokenizationError(f"Unexpected literal {buffer}.")
+                    elif is_digit(c) or is_dot(c):
+                        append_buffer(c)
                     else:
-                        buffer += c
-                
+                        raise TokenizationError(f"Unexpected literal {buffer}.")
+
                 case st.READING_STRING:
                     if is_quote(c):
                         stream.append(tokenname.StringLiteral(buffer))
-                        buffer = ''
+                        clean_buffer()
                         state = st.INITIAL
                     else:
-                        buffer += c
+                        append_buffer(c)
+
             if c == '':
                 state = st.FINISH
 

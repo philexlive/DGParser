@@ -5,15 +5,15 @@ from wisayoparser.tokenname import OpenArrow, Identifier
 
 
 class TestTokenizer(unittest.TestCase):
+    tokenizer = Tokenizer()
 
     def test_gives_ast(self):
         ast = None
         with open('tests/res.txt') as f:
             # Tokenization
-            tokenizer = Tokenizer()
 
             stream = TokensStream()
-            tokenizer.tokenize(f, stream)
+            self.tokenizer.tokenize(f, stream)
 
             ast = Parser(stream).parse()
 
@@ -23,12 +23,17 @@ class TestTokenizer(unittest.TestCase):
 
 
     def test_tokens(self):
-        tokenizer = Tokenizer()
         with open('tests/res.txt') as f:
             stream = TokensStream()
-            tokenizer.tokenize(f, stream)
+            self.tokenizer.tokenize(f, stream)
             self.assertIsInstance(next(stream), OpenArrow)
             self.assertIsInstance(next(stream), Identifier)
+
+    def test_token_error(self):
+        with open('tests/res_corrupted.txt') as f:
+            stream = TokensStream()
+
+            self.assertRaises(TokenizationError, self.tokenizer.tokenize, *[f, stream])
 
 
 if __name__ == '__main__':
